@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "مواقيت الصلاة والإحداثيات",
+  "version": "1.0.0",
+  "description": "احسب مواقيت الصلاة بحسب خطي الطول والعرض وطريقة الحساب.",
+  "host_permissions": [
+    "https://nominatim.openstreetmap.org/*"
+  ],
+  "action": {
+    "default_title": "مواقيت الصلاة",
+    "default_popup": "popup.html"
+  }
+}

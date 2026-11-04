@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>مواقيت الصلاة</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">المواقيت حسب موقعك</p>
+          <h1>مواقيت الصلاة</h1>
+        </div>
+        <span class="mark" aria-hidden="true">ص</span>
+      </header>
+
+      <section class="location" aria-labelledby="location-title">
+        <div class="section-heading">
+          <h2 id="location-title">الموقع الجغرافي</h2>
+          <button id="locate" class="locate-button" type="button" title="استخدم موقعي" aria-label="استخدم موقعي">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v3m0 14v3M2 12h3m14 0h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0-3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Z"/></svg>
+          </button>
+        </div>
+        <div class="coordinates">
+          <label>خط العرض
+            <input id="latitude" type="number" min="-90" max="90" step="0.000001" inputmode="decimal" placeholder="24.713552">
+          </label>
+          <label>خط الطول
+            <input id="longitude" type="number" min="-180" max="180" step="0.000001" inputmode="decimal" placeholder="46.675296">
+          </label>
+        </div>
+        <form id="place-form" class="place-search">
+          <label for="place-query">أو ابحث عن مدينة أو عنوان</label>
+          <div class="search-controls">
+            <input id="place-query" type="search" maxlength="160" autocomplete="off" placeholder="مثال: مكة المكرمة، السعودية">
+            <button id="search-place" class="search-button" type="submit">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.5 15.5 5 5"/></svg>
+              بحث
+            </button>
+          </div>
+          <small class="attribution">البحث بواسطة <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · النتائج تقريبية</small>
+        </form>
+        <p id="status" class="status" role="status" aria-live="polite">أدخل إحداثيات موقعك لعرض المواقيت.</p>
+      </section>
+
+      <section class="settings" aria-label="إعدادات الحساب">
+        <label>طريقة الحساب
+          <select id="method">
+            <option value="MuslimWorldLeague">رابطة العالم الإسلامي</option>
+            <option value="UmmAlQura">أم القرى</option>
+            <option value="Egyptian">الهيئة المصرية العامة للمساحة</option>
+            <option value="Karachi">جامعة العلوم الإسلامية، كراتشي</option>
+            <option value="NorthAmerica">ISNA - أمريكا الشمالية</option>
+            <option value="Dubai">دبي</option>
+            <option value="Kuwait">الكويت</option>
+            <option value="Qatar">قطر</option>
+            <option value="Singapore">سنغافورة</option>
+            <option value="Turkey">تركيا</option>
+          </select>
+        </label>
+        <label>حساب العصر
+          <select id="madhab">
+            <option value="shafi">الشافعي (ظلّ واحد)</option>
+            <option value="hanafi">الحنفي (ظلّان)</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="times" aria-labelledby="times-title">
+        <div class="times-heading">
+          <h2 id="times-title">مواقيت اليوم</h2>
+          <time id="today"></time>
+        </div>
+        <p id="empty" class="empty">أدخل خطي الطول والعرض لبدء الحساب.</p>
+        <ol id="prayer-list" class="prayer-list" hidden></ol>
+      </section>
+
+      <footer>التوقيت المحلي لجهازك <span aria-hidden="true">·</span> أوقات تقديرية بحسب طريقة الحساب المختارة</footer>
+    </main>
+    <script src="popup.bundle.js"></script>
+  </body>
+</html>

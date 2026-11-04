@@ -1,0 +1,14 @@
+{
+  "name": "prayer-times-chrome-extension",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "esbuild popup.js --bundle --format=iife --outfile=popup.bundle.js"
+  },
+  "dependencies": {
+    "adhan": "^4.4.6"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
