@@ -90,6 +90,9 @@ label { display: grid; gap: 4px; color: #52635b; font-size: 12px; }
 .search-button svg { width: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .attribution { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
 .attribution a { color: var(--green); }
+.place-results { display: grid; gap: 4px; max-height: 124px; overflow-y: auto; margin: 8px 0 0; padding: 0; list-style: none; }
+.place-result { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; color: var(--ink); background: white; text-align: right; overflow-wrap: anywhere; cursor: pointer; font-size: 10px; }
+.place-result:hover, .place-result:focus-visible { border-color: #6d9a7d; background: var(--green-soft); }
 
 input, select {
   min-width: 0;
@@ -130,5 +133,16 @@ input:focus, select:focus { border-color: #6d9a7d; box-shadow: 0 0 0 2px #e2eee4
 .prayer-row:nth-child(even) { background: #f0f4ee; }
 .prayer-row.sunrise { color: var(--muted); font-size: 12px; }
 .prayer-row time { color: var(--green); direction: ltr; font-family: Arial, sans-serif; font-size: 13px; font-variant-numeric: tabular-nums; }
+.hijri { padding: 14px 0; border-top: 1px solid var(--line); }
+.calendar-note { margin: -2px 0 10px; color: var(--muted); font-size: 10px; }
+.hijri h3 { margin: 0 0 5px; font-size: 12px; }
+.events-list { display: grid; gap: 3px; margin: 0 0 9px; padding: 0; list-style: none; }
+.events-list li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 8px; border-radius: 5px; background: #f0f4ee; font-size: 11px; }
+.events-list time { flex: none; color: var(--green); }
+details { color: #52635b; font-size: 11px; }
+summary { color: var(--green); cursor: pointer; font-weight: 700; }
+.months-list { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 18px; margin: 8px 0 0; padding-right: 20px; }
+.guidance { padding: 11px 0; border-top: 1px solid var(--line); }
+.guidance ul { display: grid; gap: 7px; padding-right: 18px; line-height: 1.65; }
 footer { margin-top: 9px; color: #87918a; text-align: center; font-size: 10px; }
 footer span { padding: 0 3px; color: var(--gold); }

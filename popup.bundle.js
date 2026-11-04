@@ -867,6 +867,7 @@
   var empty = document.querySelector("#empty");
   var placeQuery = document.querySelector("#place-query");
   var searchButton = document.querySelector("#search-place");
+  var placeResults = document.querySelector("#place-results");
   var geocodeInProgress = false;
   var methods = {
     MuslimWorldLeague: CalculationMethod_default.MuslimWorldLeague,
@@ -885,6 +886,80 @@
     day: "numeric",
     month: "long"
   }).format(/* @__PURE__ */ new Date());
+  var hijriFormatter = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric"
+  });
+  var hijriDateLabel = new Intl.DateTimeFormat("ar-u-ca-islamic-umalqura", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+  var monthNames = [
+    "\u0645\u064F\u062D\u0631\u064E\u0651\u0645",
+    "\u0635\u0641\u0631",
+    "\u0631\u0628\u064A\u0639 \u0627\u0644\u0623\u0648\u0644",
+    "\u0631\u0628\u064A\u0639 \u0627\u0644\u0622\u062E\u0631",
+    "\u062C\u0645\u0627\u062F\u0649 \u0627\u0644\u0623\u0648\u0644\u0649",
+    "\u062C\u0645\u0627\u062F\u0649 \u0627\u0644\u0622\u062E\u0631\u0629",
+    "\u0631\u062C\u0628",
+    "\u0634\u0639\u0628\u0627\u0646",
+    "\u0631\u0645\u0636\u0627\u0646",
+    "\u0634\u0648\u0627\u0644",
+    "\u0630\u0648 \u0627\u0644\u0642\u0639\u062F\u0629",
+    "\u0630\u0648 \u0627\u0644\u062D\u062C\u0629"
+  ];
+  var fixedEvents = {
+    "1-9": "\u0628\u062F\u0627\u064A\u0629 \u0634\u0647\u0631 \u0631\u0645\u0636\u0627\u0646",
+    "1-10": "\u0639\u064A\u062F \u0627\u0644\u0641\u0637\u0631",
+    "9-12": "\u064A\u0648\u0645 \u0639\u0631\u0641\u0629",
+    "10-12": "\u0639\u064A\u062F \u0627\u0644\u0623\u0636\u062D\u0649"
+  };
+  function getHijriParts(date) {
+    const parts = Object.fromEntries(
+      hijriFormatter.formatToParts(date).filter(({ type }) => ["day", "month", "year"].includes(type)).map(({ type, value }) => [type, Number(value)])
+    );
+    return parts;
+  }
+  function renderHijriCalendar() {
+    const now = /* @__PURE__ */ new Date();
+    document.querySelector("#hijri-date").textContent = hijriDateLabel.format(now);
+    const events = [];
+    const foundEvents = /* @__PURE__ */ new Set();
+    for (let offset = 0; offset <= 370; offset += 1) {
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+      const { day, month } = getHijriParts(date);
+      if (day === 13 && !foundEvents.has("white-days")) {
+        events.push({ date, label: `\u0627\u0644\u0623\u064A\u0627\u0645 \u0627\u0644\u0628\u064A\u0636 (13\u201315 ${monthNames[month - 1]})` });
+        foundEvents.add("white-days");
+      }
+      const eventKey = `${day}-${month}`;
+      const label = fixedEvents[eventKey];
+      if (label && !foundEvents.has(eventKey)) {
+        events.push({ date, label });
+        foundEvents.add(eventKey);
+      }
+    }
+    const eventList = document.querySelector("#islamic-events");
+    eventList.replaceChildren(...events.map(({ date, label }) => {
+      const item = document.createElement("li");
+      const name = document.createElement("span");
+      name.textContent = label;
+      const value = document.createElement("time");
+      value.dateTime = [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0")
+      ].join("-");
+      value.textContent = new Intl.DateTimeFormat("ar", {
+        day: "numeric",
+        month: "short"
+      }).format(date);
+      item.append(name, value);
+      return item;
+    }));
+  }
   try {
     const saved = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
     for (const [key, field] of Object.entries(fields)) {
@@ -964,6 +1039,7 @@
       fields.latitude.value = coords.latitude.toFixed(6);
       fields.longitude.value = coords.longitude.toFixed(6);
       renderPrayerTimes();
+      renderHijriCalendar();
     }, () => {
       status.textContent = "\u062A\u0639\u0630\u0651\u0631 \u062A\u062D\u062F\u064A\u062F \u0627\u0644\u0645\u0648\u0642\u0639. \u0623\u062F\u062E\u0644 \u0627\u0644\u0625\u062D\u062F\u0627\u062B\u064A\u0627\u062A \u064A\u062F\u0648\u064A\u064B\u0627.";
       status.classList.add("error");
@@ -973,6 +1049,8 @@
     event.preventDefault();
     const query = placeQuery.value.trim();
     if (!query || geocodeInProgress) return;
+    placeResults.replaceChildren();
+    placeResults.hidden = true;
     const lastRequestAt = Number(localStorage.getItem("nominatim-last-request") || 0);
     if (Date.now() - lastRequestAt < 1e3) {
       status.textContent = "\u0627\u0646\u062A\u0638\u0631 \u0644\u062D\u0638\u0629 \u0642\u0628\u0644 \u0625\u062C\u0631\u0627\u0621 \u0628\u062D\u062B \u062C\u062F\u064A\u062F.";
@@ -988,25 +1066,43 @@
       const url = new URL("https://nominatim.openstreetmap.org/search");
       url.search = new URLSearchParams({
         format: "jsonv2",
-        limit: "1",
+        limit: "5",
         "accept-language": "ar",
         q: query
       });
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const results = await response.json();
-      const result = results[0];
-      const latitude = Number(result?.lat);
-      const longitude = Number(result?.lon);
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      if (!Array.isArray(results)) throw new Error("Invalid geocoding response");
+      const validResults = results.filter((result) => {
+        const latitude = Number(result.lat);
+        const longitude = Number(result.lon);
+        return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+      });
+      if (validResults.length === 0) {
         status.textContent = "\u0644\u0645 \u064A\u064F\u0639\u062B\u0631 \u0639\u0644\u0649 \u0645\u0648\u0642\u0639 \u0645\u0637\u0627\u0628\u0642. \u062C\u0631\u0651\u0628 \u0643\u062A\u0627\u0628\u0629 \u0627\u0644\u0645\u062F\u064A\u0646\u0629 \u0645\u0639 \u0627\u0633\u0645 \u0627\u0644\u062F\u0648\u0644\u0629.";
         status.classList.remove("error");
         return;
       }
-      fields.latitude.value = latitude.toFixed(6);
-      fields.longitude.value = longitude.toFixed(6);
-      renderPrayerTimes();
-      status.textContent = `\u062A\u0645 \u062A\u062D\u062F\u064A\u062F: ${result.display_name || query} (OpenStreetMap)`;
+      placeResults.replaceChildren(...validResults.map((result) => {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "place-result";
+        button.textContent = result.display_name || query;
+        button.addEventListener("click", () => {
+          fields.latitude.value = Number(result.lat).toFixed(6);
+          fields.longitude.value = Number(result.lon).toFixed(6);
+          renderPrayerTimes();
+          status.textContent = `\u062A\u0645 \u0627\u062E\u062A\u064A\u0627\u0631: ${result.display_name || query} (OpenStreetMap)`;
+          placeResults.hidden = true;
+        });
+        item.append(button);
+        return item;
+      }));
+      placeResults.hidden = false;
+      status.textContent = "\u0627\u062E\u062A\u0631 \u0627\u0644\u0646\u062A\u064A\u062C\u0629 \u0627\u0644\u0623\u0642\u0631\u0628 \u0625\u0644\u0649 \u0645\u0648\u0642\u0639\u0643 \u0644\u062A\u062D\u0633\u064A\u0646 \u062F\u0642\u0629 \u0627\u0644\u0645\u0648\u0627\u0642\u064A\u062A.";
+      status.classList.remove("error");
     } catch {
       status.textContent = "\u062A\u0639\u0630\u0651\u0631 \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u062E\u062F\u0645\u0629 \u0627\u0644\u0628\u062D\u062B. \u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A \u0648\u062D\u0627\u0648\u0644 \u0644\u0627\u062D\u0642\u064B\u0627.";
       status.classList.add("error");

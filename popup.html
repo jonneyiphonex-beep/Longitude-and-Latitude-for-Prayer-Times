@@ -40,8 +40,9 @@
               بحث
             </button>
           </div>
-          <small class="attribution">البحث بواسطة <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · النتائج تقريبية</small>
+          <small class="attribution">البحث بواسطة <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · اختر النتيجة الأقرب لموقعك</small>
         </form>
+        <ol id="place-results" class="place-results" aria-label="نتائج البحث عن الموقع" hidden></ol>
         <p id="status" class="status" role="status" aria-live="polite">أدخل إحداثيات موقعك لعرض المواقيت.</p>
       </section>
 
@@ -77,7 +78,35 @@
         <ol id="prayer-list" class="prayer-list" hidden></ol>
       </section>
 
-      <footer>التوقيت المحلي لجهازك <span aria-hidden="true">·</span> أوقات تقديرية بحسب طريقة الحساب المختارة</footer>
+      <section class="hijri" aria-labelledby="hijri-title">
+        <div class="times-heading">
+          <h2 id="hijri-title">التاريخ الهجري</h2>
+          <time id="hijri-date"></time>
+        </div>
+        <p class="calendar-note">بحسب تقويم أم القرى؛ قد يختلف التاريخ يومًا حسب رؤية الهلال.</p>
+        <h3>أقرب المناسبات والأيام البيض</h3>
+        <ul id="islamic-events" class="events-list"></ul>
+        <details>
+          <summary>أسماء الشهور الهجرية</summary>
+          <ol class="months-list">
+            <li>مُحرَّم</li><li>صفر</li><li>ربيع الأول</li><li>ربيع الآخر</li>
+            <li>جمادى الأولى</li><li>جمادى الآخرة</li><li>رجب</li><li>شعبان</li>
+            <li>رمضان</li><li>شوال</li><li>ذو القعدة</li><li>ذو الحجة</li>
+          </ol>
+        </details>
+      </section>
+
+      <details class="guidance">
+        <summary>تنظيم الوقت والعناية بالنفس في الإسلام</summary>
+        <ul>
+          <li><strong>وقت الفراغ:</strong> اجعله لما ينفع من عبادة وتعلّم وعمل نافع وصلة الرحم؛ فالمسلم مسؤول عن عمره فيما أفناه.</li>
+          <li><strong>النوم:</strong> خذ قسطًا كافيًا ومنتظمًا من الراحة، واجعل نومك عونًا على العبادة والعمل؛ قال تعالى: ﴿وَجَعَلْنَا نَوْمَكُمْ سُبَاتًا﴾ (النبأ: 9).</li>
+          <li><strong>الطعام والشراب:</strong> تحرَّ الحلال، وتجنب الإسراف، وكل واشرب باعتدال؛ قال تعالى: ﴿وَكُلُوا وَاشْرَبُوا وَلَا تُسْرِفُوا﴾ (الأعراف: 31).</li>
+          <li><strong>المال:</strong> لا توجد طريقة موثوقة أو مشروعة تضمن كسب تريليون دولار في ثانية. اسعَ إلى رزق حلال عبر التعلم والعمل والتخطيط، وتجنب الربا والاحتيال والوعود بالثراء السريع.</li>
+        </ul>
+      </details>
+
+      <footer>بحسب توقيت جهازك وموقعك <span aria-hidden="true">·</span> قد تختلف النتائج باختلاف طريقة الحساب والجهة المحلية</footer>
     </main>
     <script src="popup.bundle.js"></script>
   </body>

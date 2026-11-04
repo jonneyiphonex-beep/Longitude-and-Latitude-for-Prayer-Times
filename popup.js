@@ -11,6 +11,7 @@ const list = document.querySelector("#prayer-list");
 const empty = document.querySelector("#empty");
 const placeQuery = document.querySelector("#place-query");
 const searchButton = document.querySelector("#search-place");
+const placeResults = document.querySelector("#place-results");
 let geocodeInProgress = false;
 
 const methods = {
@@ -31,6 +32,77 @@ document.querySelector("#today").textContent = new Intl.DateTimeFormat("ar", {
   day: "numeric",
   month: "long",
 }).format(new Date());
+
+const hijriFormatter = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", {
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+});
+const hijriDateLabel = new Intl.DateTimeFormat("ar-u-ca-islamic-umalqura", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+const monthNames = [
+  "مُحرَّم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة",
+  "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة",
+];
+const fixedEvents = {
+  "1-9": "بداية شهر رمضان",
+  "1-10": "عيد الفطر",
+  "9-12": "يوم عرفة",
+  "10-12": "عيد الأضحى",
+};
+
+function getHijriParts(date) {
+  const parts = Object.fromEntries(
+    hijriFormatter.formatToParts(date)
+      .filter(({ type }) => ["day", "month", "year"].includes(type))
+      .map(({ type, value }) => [type, Number(value)]),
+  );
+  return parts;
+}
+
+function renderHijriCalendar() {
+  const now = new Date();
+  document.querySelector("#hijri-date").textContent = hijriDateLabel.format(now);
+
+  const events = [];
+  const foundEvents = new Set();
+  for (let offset = 0; offset <= 370; offset += 1) {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+    const { day, month } = getHijriParts(date);
+    if (day === 13 && !foundEvents.has("white-days")) {
+      events.push({ date, label: `الأيام البيض (13–15 ${monthNames[month - 1]})` });
+      foundEvents.add("white-days");
+    }
+    const eventKey = `${day}-${month}`;
+    const label = fixedEvents[eventKey];
+    if (label && !foundEvents.has(eventKey)) {
+      events.push({ date, label });
+      foundEvents.add(eventKey);
+    }
+  }
+
+  const eventList = document.querySelector("#islamic-events");
+  eventList.replaceChildren(...events.map(({ date, label }) => {
+    const item = document.createElement("li");
+    const name = document.createElement("span");
+    name.textContent = label;
+    const value = document.createElement("time");
+    value.dateTime = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+    value.textContent = new Intl.DateTimeFormat("ar", {
+      day: "numeric",
+      month: "short",
+    }).format(date);
+    item.append(name, value);
+    return item;
+  }));
+}
 
 try {
   const saved = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
@@ -119,6 +191,7 @@ document.querySelector("#locate").addEventListener("click", () => {
     fields.latitude.value = coords.latitude.toFixed(6);
     fields.longitude.value = coords.longitude.toFixed(6);
     renderPrayerTimes();
+    renderHijriCalendar();
   }, () => {
     status.textContent = "تعذّر تحديد الموقع. أدخل الإحداثيات يدويًا.";
     status.classList.add("error");
@@ -129,6 +202,8 @@ document.querySelector("#place-form").addEventListener("submit", async (event) =
   event.preventDefault();
   const query = placeQuery.value.trim();
   if (!query || geocodeInProgress) return;
+  placeResults.replaceChildren();
+  placeResults.hidden = true;
 
   const lastRequestAt = Number(localStorage.getItem("nominatim-last-request") || 0);
   if (Date.now() - lastRequestAt < 1000) {
@@ -147,7 +222,7 @@ document.querySelector("#place-form").addEventListener("submit", async (event) =
     const url = new URL("https://nominatim.openstreetmap.org/search");
     url.search = new URLSearchParams({
       format: "jsonv2",
-      limit: "1",
+      limit: "5",
       "accept-language": "ar",
       q: query,
     });
@@ -155,20 +230,38 @@ document.querySelector("#place-form").addEventListener("submit", async (event) =
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const results = await response.json();
-    const result = results[0];
-    const latitude = Number(result?.lat);
-    const longitude = Number(result?.lon);
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
-        latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    if (!Array.isArray(results)) throw new Error("Invalid geocoding response");
+    const validResults = results.filter((result) => {
+      const latitude = Number(result.lat);
+      const longitude = Number(result.lon);
+      return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 &&
+        Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+    });
+    if (validResults.length === 0) {
       status.textContent = "لم يُعثر على موقع مطابق. جرّب كتابة المدينة مع اسم الدولة.";
       status.classList.remove("error");
       return;
     }
 
-    fields.latitude.value = latitude.toFixed(6);
-    fields.longitude.value = longitude.toFixed(6);
-    renderPrayerTimes();
-    status.textContent = `تم تحديد: ${result.display_name || query} (OpenStreetMap)`;
+    placeResults.replaceChildren(...validResults.map((result) => {
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "place-result";
+      button.textContent = result.display_name || query;
+      button.addEventListener("click", () => {
+        fields.latitude.value = Number(result.lat).toFixed(6);
+        fields.longitude.value = Number(result.lon).toFixed(6);
+        renderPrayerTimes();
+        status.textContent = `تم اختيار: ${result.display_name || query} (OpenStreetMap)`;
+        placeResults.hidden = true;
+      });
+      item.append(button);
+      return item;
+    }));
+    placeResults.hidden = false;
+    status.textContent = "اختر النتيجة الأقرب إلى موقعك لتحسين دقة المواقيت.";
+    status.classList.remove("error");
   } catch {
     status.textContent = "تعذّر الاتصال بخدمة البحث. تحقق من الإنترنت وحاول لاحقًا.";
     status.classList.add("error");
