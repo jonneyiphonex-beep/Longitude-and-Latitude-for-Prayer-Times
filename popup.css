@@ -12,9 +12,15 @@
 
 * { box-sizing: border-box; }
 
+html {
+  direction: rtl;
+}
+
 body {
   width: 380px;
   margin: 0;
+  direction: rtl;
+  text-align: right;
   background: var(--paper);
   color: var(--ink);
 }
