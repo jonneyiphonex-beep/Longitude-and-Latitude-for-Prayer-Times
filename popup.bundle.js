@@ -880,7 +880,8 @@
   var placeResults = document.querySelector("#place-results");
   var qiblaSection = document.querySelector("#qibla");
   var qiblaBearing = document.querySelector("#qibla-bearing");
-  var qiblaArrow = document.querySelector("#qibla-arrow");
+  var nightPracticeTimes = document.querySelector("#night-practice-times");
+  var nightPracticeStatus = document.querySelector("#night-practice-status");
   var geocodeInProgress = false;
   var methods = {
     MuslimWorldLeague: CalculationMethod_default.MuslimWorldLeague,
@@ -909,6 +910,16 @@
     month: "long",
     year: "numeric"
   });
+  var eventDateFormatter = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
+  var clockFormatter = new Intl.DateTimeFormat("ar", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
   var monthNames = [
     "\u0645\u064F\u062D\u0631\u064E\u0651\u0645",
     "\u0635\u0641\u0631",
@@ -935,6 +946,54 @@
     );
     return parts;
   }
+  function formatLocalDate(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")
+    ].join("-");
+  }
+  function renderNightPracticeTimes(maghrib, fajr) {
+    const nightDuration = fajr.getTime() - maghrib.getTime();
+    if (!Number.isFinite(nightDuration) || nightDuration <= 0) {
+      nightPracticeTimes.hidden = true;
+      nightPracticeStatus.textContent = "\u062A\u0639\u0630\u0651\u0631 \u062D\u0633\u0627\u0628 \u0623\u0648\u0642\u0627\u062A \u0627\u0644\u0644\u064A\u0644 \u0644\u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639.";
+      nightPracticeStatus.hidden = false;
+      return;
+    }
+    const boundaries = [
+      maghrib,
+      new Date(maghrib.getTime() + nightDuration / 2),
+      new Date(maghrib.getTime() + nightDuration * 5 / 6),
+      fajr
+    ];
+    const periods = [
+      "\u0627\u0644\u0646\u0648\u0645: \u0627\u0644\u0646\u0635\u0641 \u0627\u0644\u0623\u0648\u0644 \u0645\u0646 \u0627\u0644\u0644\u064A\u0644 (\u0627\u0644\u0623\u0633\u062F\u0627\u0633 \u0627\u0644\u062B\u0644\u0627\u062B\u0629 \u0627\u0644\u0623\u0648\u0644\u0649)",
+      "\u0627\u0644\u0642\u064A\u0627\u0645: \u062B\u0644\u062B \u0627\u0644\u0644\u064A\u0644 (\u0627\u0644\u0633\u062F\u0633\u0627\u0646 \u0627\u0644\u0631\u0627\u0628\u0639 \u0648\u0627\u0644\u062E\u0627\u0645\u0633)",
+      "\u0627\u0644\u0646\u0648\u0645: \u0627\u0644\u0633\u062F\u0633 \u0627\u0644\u0623\u062E\u064A\u0631 \u0645\u0646 \u0627\u0644\u0644\u064A\u0644"
+    ];
+    nightPracticeTimes.replaceChildren(...periods.map((label, index) => {
+      const item = document.createElement("li");
+      const name = document.createElement("span");
+      name.textContent = label;
+      const interval = document.createElement("span");
+      interval.className = "night-practice-interval";
+      interval.dir = "ltr";
+      const start = document.createElement("time");
+      start.dateTime = boundaries[index].toISOString();
+      start.textContent = clockFormatter.format(boundaries[index]);
+      const separator = document.createElement("span");
+      separator.textContent = " \u2013 ";
+      const end = document.createElement("time");
+      end.dateTime = boundaries[index + 1].toISOString();
+      end.textContent = clockFormatter.format(boundaries[index + 1]);
+      interval.append(start, separator, end);
+      item.append(name, interval);
+      return item;
+    }));
+    nightPracticeStatus.hidden = true;
+    nightPracticeTimes.hidden = false;
+  }
   function renderHijriCalendar() {
     const now = /* @__PURE__ */ new Date();
     document.querySelector("#hijri-date").textContent = hijriDateLabel.format(now);
@@ -944,7 +1003,8 @@
       const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
       const { day, month } = getHijriParts(date);
       if (day === 13 && !foundEvents.has("white-days")) {
-        events.push({ date, label: `\u0627\u0644\u0623\u064A\u0627\u0645 \u0627\u0644\u0628\u064A\u0636 (13\u201315 ${monthNames[month - 1]})` });
+        const endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 2);
+        events.push({ date, endDate, label: `\u0627\u0644\u0623\u064A\u0627\u0645 \u0627\u0644\u0628\u064A\u0636 (13\u201315 ${monthNames[month - 1]})` });
         foundEvents.add("white-days");
       }
       const eventKey = `${day}-${month}`;
@@ -955,21 +1015,38 @@
       }
     }
     const eventList = document.querySelector("#islamic-events");
-    eventList.replaceChildren(...events.map(({ date, label }) => {
+    eventList.replaceChildren(...events.map(({ date, endDate, label }) => {
       const item = document.createElement("li");
       const name = document.createElement("span");
       name.textContent = label;
-      const value = document.createElement("time");
-      value.dateTime = [
-        date.getFullYear(),
-        String(date.getMonth() + 1).padStart(2, "0"),
-        String(date.getDate()).padStart(2, "0")
-      ].join("-");
-      value.textContent = new Intl.DateTimeFormat("ar", {
-        day: "numeric",
-        month: "short"
-      }).format(date);
-      item.append(name, value);
+      if (endDate) {
+        item.classList.add("event-with-date-range");
+        const range = document.createElement("span");
+        range.className = "event-date-range";
+        range.dir = "ltr";
+        const start = document.createElement("time");
+        start.dateTime = formatLocalDate(date);
+        start.textContent = eventDateFormatter.format(date);
+        const separator = document.createElement("span");
+        separator.dir = "rtl";
+        separator.textContent = "\u0645 \u062D\u062A\u0649";
+        const end = document.createElement("time");
+        end.dateTime = formatLocalDate(endDate);
+        end.textContent = eventDateFormatter.format(endDate);
+        const meridiem = document.createElement("span");
+        meridiem.dir = "rtl";
+        meridiem.textContent = "\u0645";
+        range.append(start, separator, end, meridiem);
+        item.append(name, range);
+      } else {
+        const value = document.createElement("time");
+        value.dateTime = formatLocalDate(date);
+        value.textContent = new Intl.DateTimeFormat("ar", {
+          day: "numeric",
+          month: "short"
+        }).format(date);
+        item.append(name, value);
+      }
       return item;
     }));
   }
@@ -991,6 +1068,9 @@
       qiblaSection.hidden = true;
       list.hidden = true;
       empty.hidden = false;
+      nightPracticeTimes.hidden = true;
+      nightPracticeStatus.textContent = "\u0623\u062F\u062E\u0644 \u0625\u062D\u062F\u0627\u062B\u064A\u0627\u062A \u0645\u0648\u0642\u0639\u0643 \u0644\u062D\u0633\u0627\u0628 \u0627\u0644\u0623\u0648\u0642\u0627\u062A.";
+      nightPracticeStatus.hidden = false;
       status.textContent = "\u0623\u062F\u062E\u0644 \u0625\u062D\u062F\u0627\u062B\u064A\u0627\u062A \u0645\u0648\u0642\u0639\u0643 \u0644\u0639\u0631\u0636 \u0627\u0644\u0645\u0648\u0627\u0642\u064A\u062A.";
       status.classList.remove("error");
       return;
@@ -999,6 +1079,9 @@
       qiblaSection.hidden = true;
       list.hidden = true;
       empty.hidden = false;
+      nightPracticeTimes.hidden = true;
+      nightPracticeStatus.textContent = "\u0623\u062F\u062E\u0644 \u0625\u062D\u062F\u0627\u062B\u064A\u0627\u062A \u0635\u062D\u064A\u062D\u0629 \u0644\u062D\u0633\u0627\u0628 \u0623\u0648\u0642\u0627\u062A \u0627\u0644\u0644\u064A\u0644.";
+      nightPracticeStatus.hidden = false;
       empty.textContent = "\u062A\u062D\u0642\u0642 \u0645\u0646 \u0623\u0646 \u062E\u0637 \u0627\u0644\u0639\u0631\u0636 \u0628\u064A\u0646 -90 \u064890 \u0648\u0627\u0644\u0637\u0648\u0644 \u0628\u064A\u0646 -180 \u0648180.";
       status.textContent = "\u0627\u0644\u0625\u062D\u062F\u0627\u062B\u064A\u0627\u062A \u0627\u0644\u0645\u062F\u062E\u0644\u0629 \u063A\u064A\u0631 \u0635\u0627\u0644\u062D\u0629.";
       status.classList.add("error");
@@ -1013,9 +1096,12 @@
       minimumFractionDigits: 1,
       maximumFractionDigits: 1
     }).format(qiblaDegrees)}\xB0`;
-    qiblaArrow.style.transform = `translate(-50%, -50%) rotate(${qiblaDegrees}deg)`;
     qiblaSection.hidden = false;
-    const prayers = new PrayerTimes(coordinates, /* @__PURE__ */ new Date(), params);
+    const prayerDate = /* @__PURE__ */ new Date();
+    const prayers = new PrayerTimes(coordinates, prayerDate, params);
+    const tomorrow = new Date(prayerDate.getFullYear(), prayerDate.getMonth(), prayerDate.getDate() + 1);
+    const tomorrowPrayers = new PrayerTimes(coordinates, tomorrow, params);
+    renderNightPracticeTimes(prayers.maghrib, tomorrowPrayers.fajr);
     const times = [
       ["\u0627\u0644\u0641\u062C\u0631", prayers.fajr],
       ["\u0627\u0644\u0634\u0631\u0648\u0642", prayers.sunrise, true],

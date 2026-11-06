@@ -83,13 +83,6 @@
           <h2 id="qibla-title">اتجاه القبلة</h2>
           <strong id="qibla-bearing" class="qibla-bearing"></strong>
         </div>
-        <div class="qibla-compass" role="img" aria-label="مؤشر اتجاه القبلة بالنسبة إلى الشمال">
-          <span class="compass-north" aria-hidden="true">ش</span>
-          <svg id="qibla-arrow" class="qibla-arrow" viewBox="0 0 32 40" aria-hidden="true">
-            <path d="M16 1 4 25h9v13h6V25h9z"/>
-          </svg>
-        </div>
-        <p class="qibla-note">الاتجاه محسوب من الشمال، وليس بوصلة حية.</p>
       </section>
 
       <section class="hijri" aria-labelledby="hijri-title">
@@ -110,11 +103,16 @@
         </details>
       </section>
 
-      <details class="guidance">
+      <details class="guidance" open>
         <summary>تنظيم الوقت والعناية بالنفس في الإسلام</summary>
         <ul>
           <li><strong>وقت الفراغ:</strong> اجعله لما ينفع من عبادة وتعلّم وعمل نافع وصلة الرحم؛ فالمسلم مسؤول عن عمره فيما أفناه.</li>
           <li><strong>النوم:</strong> خذ قسطًا كافيًا ومنتظمًا من الراحة، واجعل نومك عونًا على العبادة والعمل؛ قال تعالى: ﴿وَجَعَلْنَا نَوْمَكُمْ سُبَاتًا﴾ (النبأ: 9).</li>
+          <li><strong>قيام داود عليه السلام:</strong>
+            <p class="night-practice-note">ينام نصف الليل، ويقوم ثلثه، وينام سدسه. الأوقات محسوبة من المغرب إلى فجر اليوم التالي، بحسب توقيت الجهاز.</p>
+            <ol id="night-practice-times" class="night-practice-times" hidden></ol>
+            <p id="night-practice-status" class="night-practice-status">أدخل إحداثيات موقعك لحساب الأوقات.</p>
+          </li>
           <li><strong>الطعام والشراب:</strong> تحرَّ الحلال، وتجنب الإسراف، وكل واشرب باعتدال؛ قال تعالى: ﴿وَكُلُوا وَاشْرَبُوا وَلَا تُسْرِفُوا﴾ (الأعراف: 31).</li>
           <li><strong>المال:</strong> لا توجد طريقة موثوقة أو مشروعة تضمن كسب تريليون دولار في ثانية. اسعَ إلى رزق حلال عبر التعلم والعمل والتخطيط، وتجنب الربا والاحتيال والوعود بالثراء السريع.</li>
         </ul>

@@ -21,7 +21,8 @@ const searchButton = document.querySelector("#search-place");
 const placeResults = document.querySelector("#place-results");
 const qiblaSection = document.querySelector("#qibla");
 const qiblaBearing = document.querySelector("#qibla-bearing");
-const qiblaArrow = document.querySelector("#qibla-arrow");
+const nightPracticeTimes = document.querySelector("#night-practice-times");
+const nightPracticeStatus = document.querySelector("#night-practice-status");
 let geocodeInProgress = false;
 
 const methods = {
@@ -53,6 +54,16 @@ const hijriDateLabel = new Intl.DateTimeFormat("ar-u-ca-islamic-umalqura", {
   month: "long",
   year: "numeric",
 });
+const eventDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+const clockFormatter = new Intl.DateTimeFormat("ar", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
 const monthNames = [
   "مُحرَّم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة",
   "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة",
@@ -73,6 +84,58 @@ function getHijriParts(date) {
   return parts;
 }
 
+function formatLocalDate(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function renderNightPracticeTimes(maghrib, fajr) {
+  const nightDuration = fajr.getTime() - maghrib.getTime();
+  if (!Number.isFinite(nightDuration) || nightDuration <= 0) {
+    nightPracticeTimes.hidden = true;
+    nightPracticeStatus.textContent = "تعذّر حساب أوقات الليل لهذا الموقع.";
+    nightPracticeStatus.hidden = false;
+    return;
+  }
+
+  const boundaries = [
+    maghrib,
+    new Date(maghrib.getTime() + nightDuration / 2),
+    new Date(maghrib.getTime() + nightDuration * 5 / 6),
+    fajr,
+  ];
+  const periods = [
+    "النوم: النصف الأول من الليل (الأسداس الثلاثة الأولى)",
+    "القيام: ثلث الليل (السدسان الرابع والخامس)",
+    "النوم: السدس الأخير من الليل",
+  ];
+
+  nightPracticeTimes.replaceChildren(...periods.map((label, index) => {
+    const item = document.createElement("li");
+    const name = document.createElement("span");
+    name.textContent = label;
+    const interval = document.createElement("span");
+    interval.className = "night-practice-interval";
+    interval.dir = "ltr";
+    const start = document.createElement("time");
+    start.dateTime = boundaries[index].toISOString();
+    start.textContent = clockFormatter.format(boundaries[index]);
+    const separator = document.createElement("span");
+    separator.textContent = " – ";
+    const end = document.createElement("time");
+    end.dateTime = boundaries[index + 1].toISOString();
+    end.textContent = clockFormatter.format(boundaries[index + 1]);
+    interval.append(start, separator, end);
+    item.append(name, interval);
+    return item;
+  }));
+  nightPracticeStatus.hidden = true;
+  nightPracticeTimes.hidden = false;
+}
+
 function renderHijriCalendar() {
   const now = new Date();
   document.querySelector("#hijri-date").textContent = hijriDateLabel.format(now);
@@ -83,7 +146,8 @@ function renderHijriCalendar() {
     const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
     const { day, month } = getHijriParts(date);
     if (day === 13 && !foundEvents.has("white-days")) {
-      events.push({ date, label: `الأيام البيض (13–15 ${monthNames[month - 1]})` });
+      const endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 2);
+      events.push({ date, endDate, label: `الأيام البيض (13–15 ${monthNames[month - 1]})` });
       foundEvents.add("white-days");
     }
     const eventKey = `${day}-${month}`;
@@ -95,21 +159,40 @@ function renderHijriCalendar() {
   }
 
   const eventList = document.querySelector("#islamic-events");
-  eventList.replaceChildren(...events.map(({ date, label }) => {
+  eventList.replaceChildren(...events.map(({ date, endDate, label }) => {
     const item = document.createElement("li");
     const name = document.createElement("span");
     name.textContent = label;
-    const value = document.createElement("time");
-    value.dateTime = [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, "0"),
-      String(date.getDate()).padStart(2, "0"),
-    ].join("-");
-    value.textContent = new Intl.DateTimeFormat("ar", {
-      day: "numeric",
-      month: "short",
-    }).format(date);
-    item.append(name, value);
+    if (endDate) {
+      item.classList.add("event-with-date-range");
+      const range = document.createElement("span");
+      range.className = "event-date-range";
+      range.dir = "ltr";
+
+      const start = document.createElement("time");
+      start.dateTime = formatLocalDate(date);
+      start.textContent = eventDateFormatter.format(date);
+      const separator = document.createElement("span");
+      separator.dir = "rtl";
+      separator.textContent = "م حتى";
+      const end = document.createElement("time");
+      end.dateTime = formatLocalDate(endDate);
+      end.textContent = eventDateFormatter.format(endDate);
+      const meridiem = document.createElement("span");
+      meridiem.dir = "rtl";
+      meridiem.textContent = "م";
+
+      range.append(start, separator, end, meridiem);
+      item.append(name, range);
+    } else {
+      const value = document.createElement("time");
+      value.dateTime = formatLocalDate(date);
+      value.textContent = new Intl.DateTimeFormat("ar", {
+        day: "numeric",
+        month: "short",
+      }).format(date);
+      item.append(name, value);
+    }
     return item;
   }));
 }
@@ -133,6 +216,9 @@ function renderPrayerTimes() {
     qiblaSection.hidden = true;
     list.hidden = true;
     empty.hidden = false;
+    nightPracticeTimes.hidden = true;
+    nightPracticeStatus.textContent = "أدخل إحداثيات موقعك لحساب الأوقات.";
+    nightPracticeStatus.hidden = false;
     status.textContent = "أدخل إحداثيات موقعك لعرض المواقيت.";
     status.classList.remove("error");
     return;
@@ -143,6 +229,9 @@ function renderPrayerTimes() {
     qiblaSection.hidden = true;
     list.hidden = true;
     empty.hidden = false;
+    nightPracticeTimes.hidden = true;
+    nightPracticeStatus.textContent = "أدخل إحداثيات صحيحة لحساب أوقات الليل.";
+    nightPracticeStatus.hidden = false;
     empty.textContent = "تحقق من أن خط العرض بين -90 و90 والطول بين -180 و180.";
     status.textContent = "الإحداثيات المدخلة غير صالحة.";
     status.classList.add("error");
@@ -158,10 +247,13 @@ function renderPrayerTimes() {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   }).format(qiblaDegrees)}°`;
-  qiblaArrow.style.transform = `translate(-50%, -50%) rotate(${qiblaDegrees}deg)`;
   qiblaSection.hidden = false;
 
-  const prayers = new PrayerTimes(coordinates, new Date(), params);
+  const prayerDate = new Date();
+  const prayers = new PrayerTimes(coordinates, prayerDate, params);
+  const tomorrow = new Date(prayerDate.getFullYear(), prayerDate.getMonth(), prayerDate.getDate() + 1);
+  const tomorrowPrayers = new PrayerTimes(coordinates, tomorrow, params);
+  renderNightPracticeTimes(prayers.maghrib, tomorrowPrayers.fajr);
   const times = [
     ["الفجر", prayers.fajr],
     ["الشروق", prayers.sunrise, true],
