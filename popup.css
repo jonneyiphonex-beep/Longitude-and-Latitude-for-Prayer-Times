@@ -133,6 +133,13 @@ input:focus, select:focus { border-color: #6d9a7d; box-shadow: 0 0 0 2px #e2eee4
 .prayer-row:nth-child(even) { background: #f0f4ee; }
 .prayer-row.sunrise { color: var(--muted); font-size: 12px; }
 .prayer-row time { color: var(--green); direction: ltr; font-family: Arial, sans-serif; font-size: 13px; font-variant-numeric: tabular-nums; }
+.qibla { display: grid; justify-items: center; gap: 5px; padding: 13px 0; border-top: 1px solid var(--line); }
+.qibla .times-heading { width: 100%; margin-bottom: 0; }
+.qibla-bearing { color: var(--green); direction: ltr; font-family: Arial, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums; }
+.qibla-compass { position: relative; width: 68px; height: 68px; border: 1px solid #d5e2d6; border-radius: 50%; background: radial-gradient(circle, white 0 55%, #f0f5ef 56%); }
+.compass-north { position: absolute; top: 3px; left: 50%; color: var(--muted); font-size: 10px; transform: translateX(-50%); }
+.qibla-arrow { position: absolute; top: 50%; left: 50%; width: 25px; height: 32px; fill: var(--gold); transform-origin: center; }
+.qibla-note { margin: 0; color: var(--muted); font-size: 10px; }
 .hijri { padding: 14px 0; border-top: 1px solid var(--line); }
 .calendar-note { margin: -2px 0 10px; color: var(--muted); font-size: 10px; }
 .hijri h3 { margin: 0 0 5px; font-size: 12px; }

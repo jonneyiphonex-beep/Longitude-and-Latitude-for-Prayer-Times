@@ -855,6 +855,16 @@
     }
   };
 
+  // node_modules/adhan/lib/esm/Qibla.js
+  function qibla(coordinates) {
+    const makkah = new Coordinates(21.4225241, 39.8261818);
+    const term1 = Math.sin(degreesToRadians(makkah.longitude) - degreesToRadians(coordinates.longitude));
+    const term2 = Math.cos(degreesToRadians(coordinates.latitude)) * Math.tan(degreesToRadians(makkah.latitude));
+    const term3 = Math.sin(degreesToRadians(coordinates.latitude)) * Math.cos(degreesToRadians(makkah.longitude) - degreesToRadians(coordinates.longitude));
+    const angle = Math.atan2(term1, term2 - term3);
+    return unwindAngle(radiansToDegrees(angle));
+  }
+
   // popup.js
   var fields = {
     latitude: document.querySelector("#latitude"),
@@ -868,6 +878,9 @@
   var placeQuery = document.querySelector("#place-query");
   var searchButton = document.querySelector("#search-place");
   var placeResults = document.querySelector("#place-results");
+  var qiblaSection = document.querySelector("#qibla");
+  var qiblaBearing = document.querySelector("#qibla-bearing");
+  var qiblaArrow = document.querySelector("#qibla-arrow");
   var geocodeInProgress = false;
   var methods = {
     MuslimWorldLeague: CalculationMethod_default.MuslimWorldLeague,
@@ -963,7 +976,10 @@
   try {
     const saved = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
     for (const [key, field] of Object.entries(fields)) {
-      if (saved[key] !== void 0) field.value = saved[key];
+      if (typeof saved[key] !== "string") continue;
+      if (key === "method" && !Object.hasOwn(methods, saved[key])) continue;
+      if (key === "madhab" && !["shafi", "hanafi"].includes(saved[key])) continue;
+      field.value = saved[key];
     }
   } catch {
     localStorage.removeItem("prayer-settings");
@@ -972,6 +988,7 @@
     const latitude = Number(fields.latitude.value);
     const longitude = Number(fields.longitude.value);
     if (!fields.latitude.value || !fields.longitude.value) {
+      qiblaSection.hidden = true;
       list.hidden = true;
       empty.hidden = false;
       status.textContent = "\u0623\u062F\u062E\u0644 \u0625\u062D\u062F\u0627\u062B\u064A\u0627\u062A \u0645\u0648\u0642\u0639\u0643 \u0644\u0639\u0631\u0636 \u0627\u0644\u0645\u0648\u0627\u0642\u064A\u062A.";
@@ -979,6 +996,7 @@
       return;
     }
     if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      qiblaSection.hidden = true;
       list.hidden = true;
       empty.hidden = false;
       empty.textContent = "\u062A\u062D\u0642\u0642 \u0645\u0646 \u0623\u0646 \u062E\u0637 \u0627\u0644\u0639\u0631\u0636 \u0628\u064A\u0646 -90 \u064890 \u0648\u0627\u0644\u0637\u0648\u0644 \u0628\u064A\u0646 -180 \u0648180.";
@@ -988,7 +1006,16 @@
     }
     const params = methods[fields.method.value]();
     params.madhab = fields.madhab.value === "hanafi" ? Madhab.Hanafi : Madhab.Shafi;
-    const prayers = new PrayerTimes(new Coordinates(latitude, longitude), /* @__PURE__ */ new Date(), params);
+    params.polarCircleResolution = PolarCircleResolution.AqrabBalad;
+    const coordinates = new Coordinates(latitude, longitude);
+    const qiblaDegrees = (qibla(coordinates) + 360) % 360;
+    qiblaBearing.textContent = `${new Intl.NumberFormat("ar", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    }).format(qiblaDegrees)}\xB0`;
+    qiblaArrow.style.transform = `translate(-50%, -50%) rotate(${qiblaDegrees}deg)`;
+    qiblaSection.hidden = false;
+    const prayers = new PrayerTimes(coordinates, /* @__PURE__ */ new Date(), params);
     const times = [
       ["\u0627\u0644\u0641\u062C\u0631", prayers.fajr],
       ["\u0627\u0644\u0634\u0631\u0648\u0642", prayers.sunrise, true],
@@ -997,6 +1024,14 @@
       ["\u0627\u0644\u0645\u063A\u0631\u0628", prayers.maghrib],
       ["\u0627\u0644\u0639\u0634\u0627\u0621", prayers.isha]
     ];
+    if (times.some(([, time]) => !Number.isFinite(time.getTime()))) {
+      list.hidden = true;
+      empty.hidden = false;
+      empty.textContent = "\u062A\u0639\u0630\u0651\u0631 \u062D\u0633\u0627\u0628 \u0627\u0644\u0645\u0648\u0627\u0642\u064A\u062A \u0644\u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639 \u0648\u0627\u0644\u062A\u0627\u0631\u064A\u062E.";
+      status.textContent = "\u062A\u0639\u0630\u0651\u0631 \u062D\u0633\u0627\u0628 \u0627\u0644\u0645\u0648\u0627\u0642\u064A\u062A. \u062C\u0631\u0651\u0628 \u0637\u0631\u064A\u0642\u0629 \u062D\u0633\u0627\u0628 \u0623\u062E\u0631\u0649.";
+      status.classList.add("error");
+      return;
+    }
     list.replaceChildren(...times.map(([name, time, isSunrise]) => {
       const row = document.createElement("li");
       row.className = `prayer-row${isSunrise ? " sunrise" : ""}`;

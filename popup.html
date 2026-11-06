@@ -78,6 +78,20 @@
         <ol id="prayer-list" class="prayer-list" hidden></ol>
       </section>
 
+      <section id="qibla" class="qibla" aria-labelledby="qibla-title" hidden>
+        <div class="times-heading">
+          <h2 id="qibla-title">اتجاه القبلة</h2>
+          <strong id="qibla-bearing" class="qibla-bearing"></strong>
+        </div>
+        <div class="qibla-compass" role="img" aria-label="مؤشر اتجاه القبلة بالنسبة إلى الشمال">
+          <span class="compass-north" aria-hidden="true">ش</span>
+          <svg id="qibla-arrow" class="qibla-arrow" viewBox="0 0 32 40" aria-hidden="true">
+            <path d="M16 1 4 25h9v13h6V25h9z"/>
+          </svg>
+        </div>
+        <p class="qibla-note">الاتجاه محسوب من الشمال، وليس بوصلة حية.</p>
+      </section>
+
       <section class="hijri" aria-labelledby="hijri-title">
         <div class="times-heading">
           <h2 id="hijri-title">التاريخ الهجري</h2>

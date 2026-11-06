@@ -1,4 +1,11 @@
-import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from "adhan";
+import {
+  CalculationMethod,
+  Coordinates,
+  Madhab,
+  PolarCircleResolution,
+  PrayerTimes,
+  Qibla,
+} from "adhan";
 
 const fields = {
   latitude: document.querySelector("#latitude"),
@@ -12,6 +19,9 @@ const empty = document.querySelector("#empty");
 const placeQuery = document.querySelector("#place-query");
 const searchButton = document.querySelector("#search-place");
 const placeResults = document.querySelector("#place-results");
+const qiblaSection = document.querySelector("#qibla");
+const qiblaBearing = document.querySelector("#qibla-bearing");
+const qiblaArrow = document.querySelector("#qibla-arrow");
 let geocodeInProgress = false;
 
 const methods = {
@@ -107,7 +117,10 @@ function renderHijriCalendar() {
 try {
   const saved = JSON.parse(localStorage.getItem("prayer-settings") || "{}");
   for (const [key, field] of Object.entries(fields)) {
-    if (saved[key] !== undefined) field.value = saved[key];
+    if (typeof saved[key] !== "string") continue;
+    if (key === "method" && !Object.hasOwn(methods, saved[key])) continue;
+    if (key === "madhab" && !["shafi", "hanafi"].includes(saved[key])) continue;
+    field.value = saved[key];
   }
 } catch {
   localStorage.removeItem("prayer-settings");
@@ -117,6 +130,7 @@ function renderPrayerTimes() {
   const latitude = Number(fields.latitude.value);
   const longitude = Number(fields.longitude.value);
   if (!fields.latitude.value || !fields.longitude.value) {
+    qiblaSection.hidden = true;
     list.hidden = true;
     empty.hidden = false;
     status.textContent = "أدخل إحداثيات موقعك لعرض المواقيت.";
@@ -126,6 +140,7 @@ function renderPrayerTimes() {
 
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
       !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    qiblaSection.hidden = true;
     list.hidden = true;
     empty.hidden = false;
     empty.textContent = "تحقق من أن خط العرض بين -90 و90 والطول بين -180 و180.";
@@ -136,7 +151,17 @@ function renderPrayerTimes() {
 
   const params = methods[fields.method.value]();
   params.madhab = fields.madhab.value === "hanafi" ? Madhab.Hanafi : Madhab.Shafi;
-  const prayers = new PrayerTimes(new Coordinates(latitude, longitude), new Date(), params);
+  params.polarCircleResolution = PolarCircleResolution.AqrabBalad;
+  const coordinates = new Coordinates(latitude, longitude);
+  const qiblaDegrees = (Qibla(coordinates) + 360) % 360;
+  qiblaBearing.textContent = `${new Intl.NumberFormat("ar", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(qiblaDegrees)}°`;
+  qiblaArrow.style.transform = `translate(-50%, -50%) rotate(${qiblaDegrees}deg)`;
+  qiblaSection.hidden = false;
+
+  const prayers = new PrayerTimes(coordinates, new Date(), params);
   const times = [
     ["الفجر", prayers.fajr],
     ["الشروق", prayers.sunrise, true],
@@ -145,6 +170,15 @@ function renderPrayerTimes() {
     ["المغرب", prayers.maghrib],
     ["العشاء", prayers.isha],
   ];
+
+  if (times.some(([, time]) => !Number.isFinite(time.getTime()))) {
+    list.hidden = true;
+    empty.hidden = false;
+    empty.textContent = "تعذّر حساب المواقيت لهذا الموقع والتاريخ.";
+    status.textContent = "تعذّر حساب المواقيت. جرّب طريقة حساب أخرى.";
+    status.classList.add("error");
+    return;
+  }
 
   list.replaceChildren(...times.map(([name, time, isSunrise]) => {
     const row = document.createElement("li");
