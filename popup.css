@@ -13,22 +13,26 @@
 * { box-sizing: border-box; }
 
 html {
+  width: 100%;
   direction: rtl;
 }
 
 body {
-  width: 380px;
+  width: min(100vw, 480px);
+  max-width: 100%;
   margin: 0;
   direction: rtl;
   text-align: right;
   background: var(--paper);
   color: var(--ink);
+  overflow-x: hidden;
 }
 
 button, input, select { font: inherit; }
 
 .app {
-  padding: 21px 22px 15px;
+  width: 100%;
+  padding: clamp(12px, 5vw, 21px) clamp(12px, 5.5vw, 22px) 15px;
   background-image: linear-gradient(135deg, rgba(226, 238, 226, .52), transparent 42%);
 }
 
@@ -72,7 +76,7 @@ h2 { margin: 0; font-size: 15px; font-weight: 700; }
 
 .locate-button:hover { background: var(--green-soft); }
 .locate-button svg { width: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
-.coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.coordinates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 label { display: grid; gap: 4px; color: #52635b; font-size: 12px; }
 .place-search { margin-top: 9px; }
 .search-controls { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
@@ -118,13 +122,14 @@ input:focus, select:focus { border-color: #6d9a7d; box-shadow: 0 0 0 2px #e2eee4
 .status { min-height: 16px; margin: 7px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
 .status.error { color: #a53d34; }
 
-.settings { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 13px 0 15px; border-bottom: 1px solid var(--line); }
+.settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 13px 0 15px; border-bottom: 1px solid var(--line); }
 .settings select { width: 100%; }
 .times { padding-top: 14px; }
 .times-heading { margin-bottom: 8px; }
 .times-heading time { color: var(--muted); font-size: 11px; }
 .empty { margin: 0; padding: 12px 0 15px; color: var(--muted); font-size: 12px; }
 .prayer-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.night-practice { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); }
 
 .prayer-row {
   display: flex;
@@ -161,3 +166,10 @@ summary { color: var(--green); cursor: pointer; font-weight: 700; }
 .night-practice-interval { display: inline-block; margin-right: 5px; color: var(--green); direction: ltr; font-family: Arial, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
 footer { margin-top: 9px; color: #87918a; text-align: center; font-size: 10px; }
 footer span { padding: 0 3px; color: var(--gold); }
+
+@media (max-width: 340px) {
+  .coordinates, .settings { grid-template-columns: minmax(0, 1fr); }
+  .app { padding-inline: 12px; }
+  .topbar { margin-bottom: 14px; }
+  .events-list li { gap: 6px; }
+}
